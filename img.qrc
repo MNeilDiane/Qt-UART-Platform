@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/img">
+        <file>img/setting.png</file>
+        <file>img/signal_4G.png</file>
+        <file>img/4G-Network_HONGpng</file>
+        <file>img/4G-Network.png</file>
+        <file>img/shezhi.png</file>
+        <file>img/电池.png</file>
+        <file>img/网络端口_OFFLINE.png</file>
+        <file>img/网络端口_ONLINE.png</file>
+        <file>img/serial.png</file>
+        <file>img/Home.png</file>
+        <file>img/technology_connectio.png</file>
+        <file>img/knowledgement.png</file>
+        <file>img/4G.png</file>
+        <file>img/ethernet.png</file>
+        <file>img/Battary.png</file>
+        <file>img/power off.png</file>
+        <file>img/signal1.png</file>
+        <file>img/signal2.png</file>
+        <file>img/signal3.png</file>
+        <file>img/signal4.png</file>
+    </qresource>
+</RCC>
