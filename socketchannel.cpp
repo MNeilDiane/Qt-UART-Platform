@@ -1,174 +1,214 @@
+/**
+ * @file socketchannel.cpp
+ * @author wujunzhe/302538094@qq.com
+ * @version 1.0.1
+ * @date 2023.3.19
+ * @brief
+ * @details 无详细说明
+ * @note 描述需要注意的问题
+ */
+
 #include "socketchannel.h"
 
-
-Socketchannel::Socketchannel(char *protocol,char* ip,int port){
-    this->protocol=protocol;
-    this->ip=ip;
-    this->port=port;
+/**
+* @brief Socketchannel构造函数
+* @details 该函数是构造函数的重写，作用是在实例化时获取用户想连接的服务器的基本参数（protocol、ip、port）以便进行以后的操作
+* @param char *protocol
+* @param char *ip
+* @param int port
+* @return none
+* @warning none
+* @note none
+*/
+Socketchannel::Socketchannel(char *protocol, char *ip, int port) {
+    this->protocol = protocol;
+    this->ip = ip;
+    this->port = port;
 }
-int Socketchannel::SocketCreate(){
-    if((socketfd=socket(AF_INET, SOCK_STREAM, 0))<0){
-        cout<<"create failed.[ip:"<<this->ip<<",port:"<<this->port<<",protocol:"<<this->protocol<<"]"<<endl;
-    }else{
-        cout<<"create success.[ip:"<<this->ip<<",port:"<<this->port<<",protocol:"<<this->protocol<<"]"<<endl;
+
+/**
+* @brief Socketchannel成员函数SocketCreate
+* @details 该函数用于创建一个套接字，将socket句柄保存至成员变量socketfd中，socket(int ip_type,int trans_mode,int protocol)
+* @param none
+* @return int,将socketfd作为返回
+* @retval >=0,创建成功
+* @retval <0,创建失败
+* @warning none
+* @note none
+*/
+int Socketchannel::SocketCreate() {
+    if(strcmp(this->protocol,"TCP")==0){
+        socketfd = socket(AF_INET, SOCK_STREAM, 0);
+    }else if(strcmp(this->protocol,"UDP")==0){
+        socketfd = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
+    }
+    if (socketfd < 0) {
+        cout << "create failed.[ip:" << this->ip << ",port:" << this->port << ",protocol:" << this->protocol << "]"
+             << endl;
+    } else {
+        cout << "create success.[ip:" << this->ip << ",port:" << this->port << ",protocol:" << this->protocol << "]"
+             << endl;
     }
     return socketfd;
 }
 
-int Socketchannel::SocketDetect(){
-    int return_result=0;
-    if((socketfd_test=socket(AF_INET, SOCK_STREAM, 0))<0){
-        cout<<"testsocket has been created"<<endl;
-    }else{
-        cout<<"testsocket has not been created"<<endl;
-    }
-    int flags=fcntl(socketfd_test,F_GETFL,0);
-    fcntl(socketfd_test,F_SETFL,flags|O_NONBLOCK);
-    memset(&servaddr, 0, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(port);
-    inet_pton(AF_INET, ip, &servaddr.sin_addr);
-    if ((connectstatus=connect(socketfd_test, (struct sockaddr *) &servaddr, sizeof(servaddr))) < 0) {
-        if(errno==EINPROGRESS){
-            fd_set rset,wset;
-            FD_ZERO(&rset);
-            FD_SET(socketfd_test,&rset);
-            wset=rset;
-            struct timeval timeout;
-            timeout.tv_sec=2;
-            timeout.tv_usec=0;
-            if(select(socketfd_test+1,&rset,&wset,NULL,&timeout)<=0){
-                cout<<"testsocket has not been connected"<<endl;
-            }else{
+/**
+* @brief Socketchannel成员函数SocketDetect
+* @details 该函数用于处理套接字连接超时问题，套接字如果直接进行连接的话,会出现超时问题导致程序阻塞，所以
+* 定义该函数提前检测该IP是否可达并且有监听，若确认该IP在对应的端口提供了socket的监听，再进行连接
+* @param none
+* @return int,返回检测结果return_result
+* @retval 1,可以对该服务器进行进一步连接
+* @retval 0,该服务器不可达，或没有提供socket服务，或链路有问题，不可进行连接
+* @warning none
+* @note none
+*/
+int Socketchannel::SocketDetect() {
+    int return_result = 0;
+    if(strcmp(this->protocol,"UDP")==0){
+        servaddr_udp=(sockaddr_in *)malloc(sizeof(struct sockaddr_in));
+//        servaddr_udp->sin_family=AF_INET;
+//        servaddr_udp->sin_port=htons(port);
+//        inet_pton(AF_INET, ip, &servaddr_udp->sin_addr);
+        return_result=1;
+    }else if(strcmp(this->protocol,"TCP")==0){
+        if ((socketfd_test = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+            cout << "testsocket has been created" << endl;
+        } else {
+            cout << "testsocket has not been created" << endl;
+        }
+        int flags = fcntl(socketfd_test, F_GETFL, 0);
+        fcntl(socketfd_test, F_SETFL, flags | O_NONBLOCK);
+        memset(&servaddr, 0, sizeof(servaddr));
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_port = htons(port);
+        inet_pton(AF_INET, ip, &servaddr.sin_addr);
+        if ((connectstatus = connect(socketfd_test, (struct sockaddr *) &servaddr, sizeof(servaddr))) < 0) {
+            if (errno == EINPROGRESS) {
+                fd_set rset, wset;
+                FD_ZERO(&rset);
+                FD_SET(socketfd_test, &rset);
+                wset = rset;
+                struct timeval timeout;
+                timeout.tv_sec = 2;
+                timeout.tv_usec = 0;
+                if (select(socketfd_test + 1, &rset, &wset, NULL, &timeout) <= 0) {
+                    cout << "testsocket has not been connected" << endl;
+                } else {
 
-                return_result=1;
-                close(socketfd_test);
+                    return_result = 1;
+                    close(socketfd_test);
+                }
+            } else {
+                cout << "testsocket has not been connected" << endl;
             }
-        }else{
-            cout<<"testsocket has not been connected"<<endl;
         }
     }
     return return_result;
 }
 
-int Socketchannel::SocketConnect(){
-    if ((connectstatus=connect(socketfd, (struct sockaddr *) &servaddr, sizeof(servaddr))) < 0) {
-        cout<<"connect failed.[ip:"<<this->ip<<",port:"<<this->port<<",protocol:"<<this->protocol<<"]"<<endl;
-    }else{
-        cout<<"connect success.[ip:"<<this->ip<<",port:"<<this->port<<",protocol:"<<this->protocol<<"]"<<endl;
+/**
+* @brief Socketchannel成员函数SocketConnect
+* @details 进行套接字连接，在SocketCreate、SocketDetect通过后进行调用，连接成功将把连接结果存入connectstatus
+* @param none
+* @return int,返回连接状态connectstatus
+* @retval >=0,连接成功
+* @retval <0,连接失败
+* @warning none
+* @note none
+*/
+int Socketchannel::SocketConnect() {
+    if(strcmp(this->protocol,"TCP")==0){
+        if ((connectstatus = connect(socketfd, (struct sockaddr *) &servaddr, sizeof(servaddr))) < 0) {
+            cout << "connect failed.[ip:" << this->ip << ",port:" << this->port << ",protocol:" << this->protocol << "]"
+                 << endl;
+        } else {
+            cout << "connect success.[ip:" << this->ip << ",port:" << this->port << ",protocol:" << this->protocol << "]"
+                 << endl;
+        }
+        return connectstatus;
+    }else if(strcmp(this->protocol,"UDP")==0){
+        cout << "UDP don't need connect,just send.[ip:" << this->ip << ",port:" << this->port << ",protocol:" << this->protocol << "]"<<endl;
     }
 }
-void Socketchannel::SocketDisconnect() const{
+
+
+/**
+* @brief Scoketchannel成员函数SocketDisconnect
+* @details 销毁该套接字，若需重连，需要重新创建并连接
+* @param none
+* @return none
+* @warning none
+* @note none
+*/
+void Socketchannel::SocketDisconnect() const {
     close(socketfd);
 }
-void Socketchannel::SendMessage(char *sendline) const{
-    if (send(socketfd, sendline, strlen(sendline), 0) < 0) {
-        cout<<"send failed."<<endl;
-    }else{
-        cout<<"send success."<<endl;
+
+/**
+* @brief Socketchannel成员函数SendMessage
+* @details 在套接字成功连接后，可以通过该函数对服务器发送信息
+* @param char *sendline
+* @return none
+* @warning none
+* @note none
+*/
+void Socketchannel::SendMessage(char *sendline) const {
+
+    if(strcmp(this->protocol,"TCP")==0){
+        if (send(socketfd, sendline, strlen(sendline), 0) < 0) {
+            cout << "send failed." << endl;
+        } else {
+            cout << "send success." << endl;
+        }
+    }else if(strcmp(this->protocol,"UDP")==0){
+        servaddr_udp->sin_family=AF_INET;
+        servaddr_udp->sin_port=htons(port);
+        inet_pton(AF_INET, ip, &servaddr_udp->sin_addr);
+        cout<<sendline<<endl;
+        cout<<sizeof(sendline)<<endl;
+        if(sendto(socketfd,sendline,strlen(sendline),0,reinterpret_cast<const sockaddr*>(servaddr_udp),sizeof (*servaddr_udp))!=-1){
+            cout<<"UDP packet send success"<<endl;
+        }else{
+            cout<<errno<<endl;
+        }
     }
 }
-char *Socketchannel::RecieveMessage() const{
-    int result=0;
+
+/**
+* @brief Socketchannel成员函数RecieveMessage
+* @details 用于接收服务器端send函数发送的信息，服务器每一次发送的数据会存入buf中，该函数适用于循环中来监听
+* 服务器端发送的数据，由于该函数是阻塞的所以被应用于子线程中，如果服务器端突然断开，该函数会一直返回nullptr
+* @param none
+* @return char *,将返回服务器端发送的字符串，如果服务器端突然断开，该函数会一直返回nullptr
+* @warning none
+* @note none
+*/
+char *Socketchannel::RecieveMessage() const {
+    int result = 0;
     char buf[1000];
     int recievelength;
     if ((recievelength = recv(socketfd, buf, MAXLINE, 0)) == 0) {
 
         return nullptr;
-    }else {
-        result=1;
+    } else {
+        result = 1;
     }
     buf[recievelength] = '\0';
     //printf("Received : %s\n", buf);
-    char *a=buf;
+    char *a = buf;
     return a;
 }
 
-void Socketchannel::printinfo(){
-    cout<<this->ip<<":"<<this->port<<":"<<this->protocol<<endl;
+/**
+* @brief Socketchannel成员函数prininfo
+* @details 打印成员变量信息，用于调试
+* @param none
+* @return none
+* @warning none
+* @note none
+*/
+void Socketchannel::printinfo() {
+    cout << this->ip << ":" << this->port << ":" << this->protocol << endl;
 }
 
-int Socketchannel::connect_test(int timeoutMs){
-    int sockfd = -1;
-        struct sockaddr_in servaddr;
-        int flags = 0;
-
-        if ((sockfd = socket(AF_INET, SOCK_STREAM , 0)) < 0)
-        {
-            printf("create socket error: %s(errno: %d)\n", strerror(errno), errno);
-            return sockfd;
-        }
-
-        memset(&servaddr, 0, sizeof(servaddr));
-        servaddr.sin_family = AF_INET;
-        servaddr.sin_port = htons(port);
-        if (inet_pton(AF_INET, ip, &servaddr.sin_addr) <= 0)
-        {
-            printf("inet_pton error for %s\n", ip);
-            close(sockfd);
-            sockfd = -1;
-            return sockfd;
-        }
-
-        //把链路设置为非阻塞
-        flags = fcntl(sockfd, F_GETFL, 0);
-        fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
-
-        if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
-        {
-            if (errno != EINPROGRESS)       /* EINPROGRESS 表示连接正在建立的过程中 */
-            {
-                printf("connect error: %s(errno: %d)\n", strerror(errno), errno);
-                close(sockfd);
-                sockfd = -1;
-            }
-            else
-            {
-                int ret;
-                fd_set write_fds;
-                struct timeval timeout;
-
-                timeout.tv_sec = 0;
-                timeout.tv_usec = 100 * 1000;       /* 连接超时时长：100ms */
-
-                FD_ZERO(&write_fds);
-                FD_SET(sockfd, &write_fds);
-
-                ret = select(sockfd + 1, NULL, &write_fds, NULL, &timeout);
-                switch (ret)
-                {
-                    case -1:        /* select错误 */
-                    {
-                        printf("connect error: %s(errno: %d)\n", strerror(errno), errno);
-                        close(sockfd);
-                        sockfd = -1;
-                        break;
-                    }
-                    case 0:         /* 超时 */
-                    {
-                        //FK_TRACE_WARN("select timeout...\n");
-                        close(sockfd);
-                        sockfd = -1;
-                        break;
-                    }
-                    default:
-                    {
-                        int error = -1;
-                        socklen_t optLen = sizeof(socklen_t);
-
-                        getsockopt(sockfd, SOL_SOCKET, SO_ERROR, (char *)&error, &optLen);       /* 通过 getsockopt 替代 FD_ISSET 判断是否连接 */
-                        if (error != 0)
-                        {
-                            printf("connect error: %s(errno: %d)\n", strerror(errno), errno);
-                            close(sockfd);
-                            sockfd = -1;
-                        }
-
-                        break;
-                    }
-                }
-            }
-        }
-
-        return sockfd;
-}

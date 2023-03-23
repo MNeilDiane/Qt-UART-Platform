@@ -1,50 +1,81 @@
+/**
+ * @file socketset.cpp
+ * @author wujunzhe/302538094@qq.com
+ * @version 1.0.1
+ * @date 2023.3.19
+ * @brief
+ * @details 无详细说明
+ * @note 描述需要注意的问题
+ */
 #include "socketset.h"
 #include "ui_socketset.h"
 #include <serialport.h>
 
+/**
+* @brief Socketset构造函数
+* @details 该类会在Serialport初始化的时候初始化，并会通过show_ini()将程序文件夹下的配置文件读取到配置界面
+* @param QWidget*
+* @return none
+* @warning none
+* @note none
+*/
 Socketset::Socketset(QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::Socketset)
-{
+        QWidget(parent),
+        ui(new Ui::Socketset) {
     ui->setupUi(this);
     show_ini();
-    connect(ui->pushButton_cancel,&QPushButton::clicked,this,&Socketset::close);
-    connect(ui->pushButton_save,&QPushButton::clicked,this,&Socketset::on_save);
+    connect(ui->pushButton_cancel, &QPushButton::clicked, this, &Socketset::close);
+    connect(ui->pushButton_save, &QPushButton::clicked, this, &Socketset::on_save);
 
 }
 
-Socketset::~Socketset()
-{
+/**
+* @brief Socketset析构函数
+* @details 对象销毁时运行的函数
+* @param none
+* @return none
+* @warning none
+* @note none
+*/
+Socketset::~Socketset() {
     delete ui;
 }
 
-
-void Socketset::show_ini(){
+/**
+* @brief Socketset成员函数show_ini
+* @details 将项目"Debug"目录下的socket_setting.ini文件读出，并显示在页面的控件上
+* @param none
+* @return none
+* @warning none
+* @note onne
+*/
+void Socketset::show_ini() {
     QSettings *settings;
-    QLineEdit *lineedit_vector[3][2] ={{ui->lineEdit_1_ip,ui->lineEdit_1_port},{ui->lineEdit_2_ip,ui->lineEdit_2_port},{ui->lineEdit_3_ip,ui->lineEdit_3_port}};
-    QComboBox *combox_vector[3] = {ui->comboBox_1,ui->comboBox_2,ui->comboBox_3};
-    int count=0;
-    QString ini_filepath=QCoreApplication::applicationDirPath()+"/socket_setting.ini";
+    QLineEdit *lineedit_vector[3][2] = {{ui->lineEdit_1_ip, ui->lineEdit_1_port},
+                                        {ui->lineEdit_2_ip, ui->lineEdit_2_port},
+                                        {ui->lineEdit_3_ip, ui->lineEdit_3_port}};
+    QComboBox *combox_vector[3] = {ui->comboBox_1, ui->comboBox_2, ui->comboBox_3};
+    int count = 0;
+    QString ini_filepath = QCoreApplication::applicationDirPath() + "/socket_setting.ini";
     QFileInfo fileInfo(ini_filepath);
-    if(!fileInfo.isFile()){
-        qDebug()<<"not found";
-        settings = new QSettings(ini_filepath,QSettings::IniFormat);
-    }else{
-        settings = new QSettings(ini_filepath,QSettings::IniFormat);
+    if (!fileInfo.isFile()) {
+        qDebug() << "not found";
+        settings = new QSettings(ini_filepath, QSettings::IniFormat);
+    } else {
+        settings = new QSettings(ini_filepath, QSettings::IniFormat);
         QStringList grouplist = settings->childGroups();
-        for(QString group:grouplist){
-            vector<string> ini_params;
+        for (QString group: grouplist) {
+            vector <string> ini_params;
             settings->beginGroup(group);
-            QStringList keylist=settings->childKeys();
-            for(QString key:keylist){
+            QStringList keylist = settings->childKeys();
+            for (QString key: keylist) {
                 ini_params.push_back(settings->value(key).toString().toStdString());
 
             }
 
-                lineedit_vector[count][0]->setText(QString::fromStdString(ini_params[0]));
-                 lineedit_vector[count][1]->setText(QString::fromStdString(ini_params[1]));
-                 combox_vector[count]->setCurrentText(QString::fromStdString(ini_params[2]));
-
+            lineedit_vector[count][0]->setText(QString::fromStdString(ini_params[0]));
+            lineedit_vector[count][1]->setText(QString::fromStdString(ini_params[1]));
+            combox_vector[count]->setCurrentText(QString::fromStdString(ini_params[2]));
             count++;
             //cout<<ini_params[0]<<ini_params[1]<<ini_params[2]<<endl;
             //const char *port_num= ini_params[1].c_str();
@@ -55,27 +86,34 @@ void Socketset::show_ini(){
     }
 }
 
-void Socketset::on_save(){
+/**
+* @brief Scoketset成员函数on_save
+* @details 作为"保存"按钮的槽函数，用户点击"保存"按钮后会将文本框里的IP、端口、协议覆盖至socket_setting.ini文件中
+* @param none
+* @return none
+* @warning none
+* @note none
+*/
+void Socketset::on_save() {
     QSettings *settings;
-    QLineEdit *lineedit_vector[3][2] ={{ui->lineEdit_1_ip,ui->lineEdit_1_port},{ui->lineEdit_2_ip,ui->lineEdit_2_port},{ui->lineEdit_3_ip,ui->lineEdit_3_port}};
-    QComboBox *combox_vector[3] = {ui->comboBox_1,ui->comboBox_2,ui->comboBox_3};
-
-
-    QString ini_filepath=QCoreApplication::applicationDirPath()+"/socket_setting.ini";
+    QLineEdit *lineedit_vector[3][2] = {{ui->lineEdit_1_ip, ui->lineEdit_1_port},
+                                        {ui->lineEdit_2_ip, ui->lineEdit_2_port},
+                                        {ui->lineEdit_3_ip, ui->lineEdit_3_port}};
+    QComboBox *combox_vector[3] = {ui->comboBox_1, ui->comboBox_2, ui->comboBox_3};
+    QString ini_filepath = QCoreApplication::applicationDirPath() + "/socket_setting.ini";
     QFileInfo fileInfo(ini_filepath);
-    if(!fileInfo.isFile()){
-        qDebug()<<"not found";
-        settings = new QSettings(ini_filepath,QSettings::IniFormat);
-    }else{
-        settings = new QSettings(ini_filepath,QSettings::IniFormat);
+    if (!fileInfo.isFile()) {
+        qDebug() << "not found";
+        settings = new QSettings(ini_filepath, QSettings::IniFormat);
+    } else {
+        settings = new QSettings(ini_filepath, QSettings::IniFormat);
         QStringList grouplist = settings->childGroups();
-        int count=0;
-        for(QString group:grouplist){
+        int count = 0;
+        for (QString group: grouplist) {
             settings->beginGroup(group);
-               settings->setValue("ip",lineedit_vector[count][0]->text());
-               settings->setValue("port",lineedit_vector[count][1]->text());
-                settings->setValue("protocol",combox_vector[count]->currentText());
-
+            settings->setValue("ip", lineedit_vector[count][0]->text());
+            settings->setValue("port", lineedit_vector[count][1]->text());
+            settings->setValue("protocol", combox_vector[count]->currentText());
             count++;
             settings->endGroup();
         }
@@ -156,8 +194,6 @@ void Socketset::on_save(){
 //        delete child;
 //    }
 //    current_info->update();
-
-
 //    delete  current_info;
 
 //}
