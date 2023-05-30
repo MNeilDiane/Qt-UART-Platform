@@ -14,6 +14,11 @@
 #include <QThread>
 #include <socketchannel.h>
 #include <QDebug>
+#include <unordered_map>
+#include <QSettings>
+#include <QCoreApplication>
+#include <QFileInfo>
+#include <QTimer>
 
 /**
  *  @brief Socketdata类声明
@@ -38,10 +43,18 @@ public:
 public
     slots:
             void deleteself();
+            void s_mode_end();
 private:
+    int s_mode_status;
     int num; ///< Socketchannel编号，用于区分不同的Socketchannel
+    static string set_socket_cmd;
+    static string get_socket_info_cmd;
+    static unordered_map<string,int> datatypemap;
     signals:
             void trigger(char * data,int num); ///< 信号函数，一旦该线程接收到服务器发来的数据就触发该函数，该信号函数对应的槽函数 @ref senddata_toserial(QByteArray data) serialport.h
+            void trigger2(char *data); //set ini
+            void trigger3(Socketchannel *currentsocket); //get ini
+            void trigger4(); //start S MODE
 };
 
 #endif // SOCKETDATA_H

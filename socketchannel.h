@@ -26,7 +26,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
-
+#include <QDebug>
 
 #define MAXLINE 4096
 using namespace std;
@@ -48,9 +48,11 @@ public:
 
     void SendMessage(char *sendline) const;
 
+    void SendMessage(uint8_t *data,int data_len) const;
+
     char *RecieveMessage() const;
 
-    void printinfo();
+    char *printinfo();
 
     int connectstatus{}; ///< 连接状态，connect后将结果返回至该变量
 

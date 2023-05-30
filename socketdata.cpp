@@ -25,7 +25,7 @@ Socketdata::Socketdata(Socketchannel *current_socket, int num) {
     connect(this, &Socketdata::finished, this, [=]() {
         delete this;
         qDebug() << "port" << num << " older thread has been destoryed[" << currentThreadId()
-                 << "],please check the link,retry in 10 minutes later";
+                 << "],please check the link,retry in 6 minutes later";
     });
 }
 
@@ -38,15 +38,36 @@ Socketdata::Socketdata(Socketchannel *current_socket, int num) {
 * @note 注解
 */
 void Socketdata::run() {
+    s_mode_status=0;
     while (1) {
         if (current_socket->connectstatus != 0) {
             break;
         } else {
             this->data = this->current_socket->RecieveMessage();
             if (this->data != nullptr) {
-                this->trigger(this->data,num);
+                string data_str=data;
+                //cout<<data_str<<endl;
+                if(data_str.find(set_socket_cmd)!=string::npos && data_str.find(",300,")!=string::npos){ //set socketini file
+                    qDebug()<<"recieved setsocketini request.";
+                    this->trigger2(data);
+                }else if(data_str.find(get_socket_info_cmd)!=string::npos){ //get socketini file
+                    qDebug()<<"recieved getsocketini request.";
+                    this->trigger3(this->current_socket);
+                }else if(datatypemap.count(data_str.substr(0,3)) || s_mode_status==1){//send data to serial
+
+                    if(s_mode_status==1){
+                        qDebug()<<"[S-MODE]"+QString(data);
+                    }
+                    this->trigger(this->data,num);
+                }else if(data_str.find("$cmd")!=string::npos && s_mode_status==0 && num==1){
+                    qDebug()<<"S-MODE start.";
+                    this->trigger(this->data,num);
+                    this->trigger4();
+                    s_mode_status=1;
+                }
             } else {
-                current_socket->connectstatus = -2;
+                    current_socket->connectstatus = -2;
+
             }
         }
     }
@@ -78,4 +99,9 @@ void Socketdata::deleteself() {
     this->terminate();
     this->wait();
     this->deleteLater();
+}
+
+void Socketdata::s_mode_end(){
+    qDebug()<<"S-MODE end.";
+    s_mode_status=0;
 }

@@ -122,6 +122,16 @@ void Socketset::on_save() {
     close();
 }
 
+void Socketset::set_edit(QString ip,QString port,QString protocol,int num){
+    QLineEdit *lineedit_vector[3][2] = {{ui->lineEdit_1_ip, ui->lineEdit_1_port},
+                                        {ui->lineEdit_2_ip, ui->lineEdit_2_port},
+                                        {ui->lineEdit_3_ip, ui->lineEdit_3_port}};
+    QComboBox *combox_vector[3] = {ui->comboBox_1, ui->comboBox_2, ui->comboBox_3};
+    lineedit_vector[num][0]->setText(ip);
+    lineedit_vector[num][1]->setText(port);
+    combox_vector[num]->setCurrentText(protocol);
+    on_save();
+}
 
 //void Socketset::pushButton_add(){
 //    QHBoxLayout *info =new QHBoxLayout();

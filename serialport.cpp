@@ -1,4 +1,4 @@
-/**
+ /**
  * @file serialport.cpp
  * @author wujunzhe/302538094@qq.com
  * @version 1.0.1
@@ -15,6 +15,10 @@
 #include<QMessageBox>
 #include<ctime>
 
+//the static menber data of Socketdata
+string Socketdata::set_socket_cmd="config,";
+string Socketdata::get_socket_info_cmd="config,readconfig,1234567890";
+unordered_map<string,int> Socketdata::datatypemap={{"<NO",1},{"DAT",1},{"TIM",1},{"TNS",1},{"SZY",1},{"HGC",1},{"DMS",1},{"CSP",1},{"CSM",1},{"CST",1},{"SVR",1},{"RID",1},{"WMS",1},{"RST",1}};
 /**
 * @brief SerialPort 构造函数
 * @details 构造函数，执行UI界面构建，页面参数设置。打开通信串口，初始化socket设置，
@@ -33,10 +37,11 @@ SerialPort::SerialPort(QWidget *parent) :
     SerialPortInit();
     socket_setting_fun();
     initialize_socket();
-    reconnect_byclock(600000);
-    port1 = nullptr;
-    port2 = nullptr;
-    port3 = nullptr;
+    reconnect_byclock(360000);
+    //reconnect_byclock(5000);
+//    port1 = nullptr;
+//    port2 = nullptr;
+//    port3 = nullptr;
     Signaldetect *a = new Signaldetect();
     connect(a, &Signaldetect::sendsignals, this, &SerialPort::get_signal);
     a->start();
@@ -106,7 +111,7 @@ void SerialPort::SerialPortInit() {
             serial_settings->endGroup();
 
         }
-
+        delete(serial_settings);
         ui->n_line1->setText(QString::fromStdString(serial_params[2]));
         ui->n_line2->setText(QString::fromStdString(serial_params[5]));
         ui->n_line3->setText(QString::fromStdString(serial_params[8]));
@@ -118,9 +123,6 @@ void SerialPort::SerialPortInit() {
         ui->d_line3->setText(QString::fromStdString(serial_params[7]));
         ui->d_line4->setText(QString::fromStdString(serial_params[10]));
         ui->d_line5->setText(QString::fromStdString(serial_params[13]));
-
-        eth1_judge();
-        eth2_judge();
     }
 
 }
@@ -138,12 +140,48 @@ void SerialPort::slotReadData() {
     static QByteArray sumData;
     QByteArray tempData = serial->readAll();
     if (!tempData.isEmpty()) {
+
         sumData.append(tempData);
         //qDebug()<<sumData<<endl;
         if (sumData.contains("\r\n")) {
-            DataReceived(sumData);
-            DataProcess(sumData);
-            senddata_toserver(sumData.simplified());
+            qDebug()<<"serialport data:["<<sumData<<"]";
+            QString csq = sumData;
+            csq=csq.simplified();
+            if(csq==("rrpc,getcsq")){
+                csq.append(","+ui->signal_strength->text()+"\r\n");
+                QByteArray sumDataC=csq.toUtf8();
+                senddata_toserial(sumDataC,0);
+                sumData.clear();
+            }
+            if(sumData.contains("Port3"))
+            {
+                DataReceived(sumData);
+                senddata_toserver(sumData);
+            }
+            else if(sumData.contains("Port")) {
+                if(sumData.contains("<"))
+                {
+                    DataReceived(sumData);
+                    senddata_toserver(sumData.simplified());
+
+                }
+                else
+                {
+                    if(serialdata_islegal(csq))
+                    {
+                        DataReceived(sumData);
+                        DataProcess(sumData);
+                        senddata_toserver(sumData.simplified());
+                    }
+                    else
+                    {
+                        senddata_toserver(sumData.simplified());
+                    }
+
+                }
+
+            }
+            csq.clear();
             sumData.clear();
         }
     }
@@ -206,12 +244,23 @@ void SerialPort::DataProcess(QByteArray data) {
 
         QString temp = list[4 + i];
         QStringList temp_spilt = temp.split(" ");
-        serialdata->Sensornum.append(temp_spilt[0]);
-        serialdata->Errorcode.append(temp_spilt[1]);
-        QStringList strlist = serialdata->FormatData(temp_spilt[2]);
-
-        serialdata->Sensordata.push_back(strlist.join(" "));
-
+        int temp_len=temp_spilt.size();
+        if(temp_len==1)
+        {
+            serialdata->Sensornum.append(temp_spilt[0].mid(0,3));
+            serialdata->Sensordata.push_back(temp_spilt[0].mid(4,-1));
+        }
+        else if(temp_len==3)
+        {
+            serialdata->Sensornum.append(temp_spilt[0]);
+            QStringList strlist = serialdata->FormatData(temp_spilt[2]);
+            serialdata->Sensordata.push_back(strlist.join(" "));
+        }
+        else
+        {
+            delete serialdata;
+            return ;
+        }
         QStringList battery_spilt = list[4 + tmp].split(" ");
         serialdata->Batterynum = battery_spilt[0];
         serialdata->Batteryvoltage = serialdata->FormatData(battery_spilt[2])[0];
@@ -245,6 +294,7 @@ void SerialPort::DataProcess(QByteArray data) {
         }
         serialdata->Sensornum.clear();
     }
+    delete serialdata;
 
 }
 
@@ -276,12 +326,6 @@ void SerialPort::timerEvent(QTimerEvent *event) {
     if (event->timerId() == timer1) {
         timeUpdate();
     }
-    if (event->timerId() == timer2) {
-        eth1_judge();
-    }
-    if (event->timerId() == timer3) {
-        eth2_judge();
-    }
 }
 
 /**
@@ -293,7 +337,7 @@ void SerialPort::timerEvent(QTimerEvent *event) {
 * @note none
 */
 void SerialPort::senddata_toserial(QByteArray data,int num) {
-    //qDebug("str:%s",data.toStdString().data());
+//    qDebug("str:%s",data.toStdString().data());
     QString socketstr;
     if(num==1)
     {
@@ -307,14 +351,123 @@ void SerialPort::senddata_toserial(QByteArray data,int num) {
     {
         socketstr="收到数据推送据";
     }
-
     else
         socketstr="";
     QDateTime timecur = QDateTime::currentDateTime();
     QString timestr = timecur.toString("[yy-MM-dd hh:mm:ss]");
     ui->DataReceived->appendPlainText(timestr + socketstr+"\n未解析\n发送至传感器串口\n");
-    QString str = QString::number(num)+":";
-    serial->write(str.toUtf8().append(data));
+
+    serial->write(data.toStdString().data());
+}
+
+bool SerialPort::serialdata_islegal(QString data)
+{
+    QStringList list = data.split(":");
+    int n=list.length();
+    if(n<4)
+        return false;
+    if(list[0].mid(0,4)!=("Port"))
+    {
+        return false;
+
+    }
+    if(!list[n-1].contains("END"))
+    {
+        return false;
+    }
+    return true;
+
+}
+
+void SerialPort::set_ini_fromsocket(char *data){
+    QStringList ini_inf=QString(data).split(',');
+//    //cout<<data<<endl;
+    for(QString s:ini_inf){
+        cout<<s.toStdString()<<endl;
+    }
+//    QSettings *settings2;
+//    QString ini_filepath = QCoreApplication::applicationDirPath() + "/socket_setting.ini";
+//    QFileInfo fileInfo(ini_filepath);
+//    if (!fileInfo.isFile()) {
+//        qDebug() << "not found";
+//        settings2 = new QSettings(ini_filepath, QSettings::IniFormat);
+//    } else {
+//        settings2 = new QSettings(ini_filepath, QSettings::IniFormat);
+//        QStringList grouplist = settings2->childGroups();
+//        int count = 0;
+//        for (QString group: grouplist) {
+//            //cout<<group.toStdString()<<endl;
+//            if(group.toStdString()[4]==ini_inf[0][7]){
+//                settings2->beginGroup(group);
+//                settings2->setValue("ip", ini_inf[4]);
+//                settings2->setValue("port", ini_inf[5]);
+//                settings2->setValue("protocol", ini_inf[1]);
+//                count++;
+//                settings2->endGroup();
+//            }
+//        }
+//    }
+//    delete(settings2);
+//    socketset->on_save();
+    if(QString(ini_inf[1][0]).toInt()==1){
+        if(ini_inf[3]=="8888"){
+            socketset->set_edit(ini_inf[5],ini_inf[6],ini_inf[2],QString(ini_inf[1][0]).toInt()-1);
+        }else{
+            cout<<"it's illegal to change channel 1!"<<endl;
+        }
+    }else{
+        if(ini_inf[3]=="0000")
+        socketset->set_edit(ini_inf[5],ini_inf[6],ini_inf[2],QString(ini_inf[1][0]).toInt()-1);
+    }
+}
+
+void SerialPort::send_ini_toserver(Socketchannel *socket){
+    QJsonObject object;
+    QJsonArray conf;
+    QJsonArray dwprot;
+    int plate=0;
+    QString ini_filepath = QCoreApplication::applicationDirPath() + "/socket_setting.ini";
+    QFileInfo fileInfo(ini_filepath);
+    if (!fileInfo.isFile()) {
+        qDebug() << "not found";
+        settings = new QSettings(ini_filepath, QSettings::IniFormat);
+    } else {
+        settings = new QSettings(ini_filepath, QSettings::IniFormat);
+        QStringList grouplist = settings->childGroups();
+        for (QString group: grouplist) {
+            QJsonArray one_of_conf;
+            vector<string> ini_params;
+            settings->beginGroup(group);
+            QStringList keylist = settings->childKeys();
+            for (QString key: keylist) {
+                ini_params.push_back(settings->value(key).toString().toStdString());
+            }
+            one_of_conf.append(ini_params[2].c_str()); //protocol
+            one_of_conf.append("0x00");
+            one_of_conf.append(300);
+            one_of_conf.append(ini_params[0].c_str());
+            one_of_conf.append(ini_params[1].c_str());
+            one_of_conf.append(1);
+            one_of_conf.append("");
+            one_of_conf.append("");
+            one_of_conf.append("");
+            conf.append(one_of_conf);
+            settings->endGroup();
+        }
+    }
+    delete(settings);
+    for(int i=0;i<4;i++){
+        QJsonObject emptyjson;
+        conf.append(emptyjson);
+    }
+    for(int i=0;i<7;i++){
+        dwprot.append("");
+    }
+    object.insert("conf",conf);
+    object.insert("dwprot",dwprot);
+    object.insert("plate",plate);
+    string feedback_inf=(QString(QJsonDocument(object).toJson(QJsonDocument::Compact))+"\r\n").toStdString();
+    socket->SendMessage(&feedback_inf[0]);
 }
 
 /**
@@ -327,10 +480,25 @@ void SerialPort::senddata_toserial(QByteArray data,int num) {
 */
 void SerialPort::senddata_toserver(QByteArray data) {
 
-    qDebug() << data << endl;
-    int i = data[4] - 49;
+//    qDebug() << data << endl;
+    int i = data[4] - 49; //i=0,1,2
+    if(i!=1 && i!=2 && i!=0)return;
     if (!current_socket.empty() && current_socket[i]->connectstatus >= 0) {
-        this->current_socket[i]->SendMessage(QString(data + "\r\n").toUtf8().data());
+        QString str = QString(data);
+        str=str.mid(6,-1);
+        if(i==2){
+//            qDebug()<<data<<endl;
+//            data.toHex();
+            uint8_t hexdata[data.size()-8];
+            //cout<<data.size()-8<<endl;
+            for(int i=0;i<data.size()-8;i++){
+                hexdata[i]=data[i+6];
+                //cout<<hexdata[i]<<" ";
+            }
+            this->current_socket[i]->SendMessage(hexdata,data.size()-8);
+        }else{
+            this->current_socket[i]->SendMessage(QString(str + "\r\n").toUtf8().data());
+        }
         //if(this->current_socket[0]->RecieveMessage()){
         //    getdata_fromserver("ok");
         //}
@@ -353,6 +521,7 @@ void SerialPort::initialize_socket() {
     connect(socketset, SIGNAL(reinitial_socket_fromserial()), this, SLOT(initialize_socket()));
     for(Socketchannel *socket:current_socket){
         socket->SocketDisconnect();
+        delete(socket);
     }
     current_socket.clear();
     QString ini_filepath = QCoreApplication::applicationDirPath() + "/socket_setting.ini";
@@ -389,20 +558,37 @@ void SerialPort::initialize_socket() {
             current_socket.push_back(socket);
             settings->endGroup();
         }
-        for(Socketchannel *socket:current_socket){
-            socket->printinfo();
-        }
+        delete(settings);
+//        for(Socketchannel *socket:current_socket){
+//            socket->printinfo();
+//        }
 
         emit deletethread();
-        port1 = new Socketdata(current_socket[0], 1);
-        port2 = new Socketdata(current_socket[1], 2);
-        port3 = new Socketdata(current_socket[2], 3);
+//        delete(port1);
+//        delete(port2);
+//        delete(port3);
+        Socketdata *port1 = new Socketdata(current_socket[0], 1);
+        Socketdata *port2 = new Socketdata(current_socket[1], 2);
+        Socketdata *port3 = new Socketdata(current_socket[2], 3);
         connect(port1, &Socketdata::trigger, this, &SerialPort::senddata_toserial);
         connect(port2, &Socketdata::trigger, this, &SerialPort::senddata_toserial);
         connect(port3, &Socketdata::trigger, this, &SerialPort::senddata_toserial);
+        connect(port1, &Socketdata::trigger3, this, &SerialPort::send_ini_toserver);
+        connect(port2, &Socketdata::trigger3, this, &SerialPort::send_ini_toserver);
+        connect(port3, &Socketdata::trigger3, this, &SerialPort::send_ini_toserver);
+        connect(port1, &Socketdata::trigger2, this, &SerialPort::set_ini_fromsocket);
+        connect(port2, &Socketdata::trigger2, this, &SerialPort::set_ini_fromsocket);
+        connect(port3, &Socketdata::trigger2, this, &SerialPort::set_ini_fromsocket);
         connect(this, &SerialPort::deletethread, port1, &Socketdata::deleteself);
         connect(this, &SerialPort::deletethread, port2, &Socketdata::deleteself);
         connect(this, &SerialPort::deletethread, port3, &Socketdata::deleteself);
+
+        connect(port1, &Socketdata::trigger4,this,&SerialPort::start_smode_timer);
+        //connect(port2, &Socketdata::trigger4,this,&SerialPort::start_smode_timer);
+        //connect(port3, &Socketdata::trigger4,this,&SerialPort::start_smode_timer);
+        connect(this,&SerialPort::stop_smode_signal,port1,&Socketdata::s_mode_end);
+        //connect(this,&SerialPort::stop_smode_signal,port2,&Socketdata::s_mode_end);
+        //connect(this,&SerialPort::stop_smode_signal,port3,&Socketdata::s_mode_end);
         if(strcmp(current_socket[0]->protocol,"TCP")==0){
             port1->start();
         }
@@ -612,8 +798,18 @@ void SerialPort::get_signal(int csq) {
     ui->signal_strength->setText(QString::number(csq));
 }
 
+void SerialPort::start_smode_timer(){
+    QTimer *s_mode=new QTimer(this);
+    s_mode->setInterval(180000);
+    connect(s_mode,&QTimer::timeout,this,[=](){stop_smode_timer(s_mode);});
+    s_mode->start();
+}
 
-
+void SerialPort::stop_smode_timer(QTimer *s_mode){
+    s_mode->stop();
+    s_mode->deleteLater();
+    stop_smode_signal();
+}
 
 
 

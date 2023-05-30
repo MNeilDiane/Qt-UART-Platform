@@ -1,0 +1,11 @@
+cp /home/cat/RouterProgram/qt.desktop /etc/xdg/autostart/
+cp /lib/systemd/system/rc-local.service /etc/systemd/system
+chmod 777 /etc/systemd/system/rc-local.service
+echo -e "[Install]\nWantedBy=multi-user.target\nAlias=rc-local.service">>/etc/systemd/system/rc-local.service
+cp /home/cat/RouterProgram/rc.local /etc/
+chmod 777 /etc/rc.local
+
+mkdir /home/cat/build-RouterProgram-Desktop-Debug
+cp /home/cat/RouterProgram/socket_setting.ini /home/cat/build-RouterProgram-Desktop-Debug/
+cp /home/cat/RouterProgram/serial_setting.ini /home/cat/build-RouterProgram-Desktop-Debug/
+chmod 777 /home/cat/build-RouterProgram-Desktop-Debug

@@ -15,7 +15,6 @@
 #include <QMainWindow>
 #include <QWidget>
 
-
 QT_BEGIN_NAMESPACE
 namespace Ui {
     class MainWindow;

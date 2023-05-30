@@ -13,7 +13,7 @@
 
 #include <QWidget>
 #include<QApplication>
-#include<QtSerialPort>
+#include<QSerialPort>
 #include<QtSerialPort/QSerialPortInfo>
 #include<QDebug>
 #include<QTimer>
@@ -32,6 +32,8 @@
 #include <socketdata.h>
 #include <signaldetect.h>
 #include <string.h>
+#include <QJsonArray>
+#include <QJsonObject>
 
 
 using namespace std;
@@ -65,6 +67,8 @@ public:
     void senddata_toserial(QByteArray data,int num);
 
     void getdata_fromserver();
+
+    bool serialdata_islegal(QString data);
 
 public
     slots:
@@ -106,6 +110,14 @@ private
 
     void get_signal(int csq);
 
+    void set_ini_fromsocket(char *data);
+
+    void send_ini_toserver(Socketchannel *socket);
+
+    void start_smode_timer();
+
+    void stop_smode_timer(QTimer *smode);
+
 //    void eth1_judge(int status);
 
 //    void eth2_judge(int status);
@@ -126,9 +138,9 @@ private:
     vector<Socketchannel *> current_socket; ///< 装Socketchannel的容器，每次调用initialize_socket都会清空该容器，并把新实例化的容器放入
 
     Socketset *socketset; ///<Socketset界面
-    Socketdata *port1; ///<
-    Socketdata *port2;
-    Socketdata *port3;
+    //Socketdata *port1; ///<
+    //Socketdata *port2;
+    //Socketdata *port3;
 
 
     //FROM SERIAL
@@ -141,6 +153,7 @@ private:
 
     signals:
             void deletethread();///< 在每一次计时器结束调用、用户配置Socket后调用initialize_socket函数，都会将上次initialize_sockt中开启的三个线程删除并重新开启，该信号函数对应的槽函数为@ref deleteself() socketdata.h
+            void stop_smode_signal();
 };
 
 #endif // SERIALPORT_H

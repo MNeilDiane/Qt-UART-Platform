@@ -138,7 +138,7 @@ background-color:white;
       <number>1</number>
      </property>
      <property name="text">
-      <string>0791-JX-2A01</string>
+      <string/>
      </property>
     </widget>
     <widget class="QLabel" name="n_line1">
@@ -189,7 +189,7 @@ border-radius:5px;
 background-color:white;</string>
      </property>
      <property name="text">
-      <string>20</string>
+      <string>0</string>
      </property>
     </widget>
     <widget class="QLabel" name="d_line1">
@@ -281,7 +281,7 @@ border-radius:5px;
 background-color:white;</string>
      </property>
      <property name="text">
-      <string>500.367</string>
+      <string>0</string>
      </property>
     </widget>
     <widget class="QLabel" name="d_line2">
@@ -357,7 +357,7 @@ border-radius:5px;
 background-color:white;</string>
      </property>
      <property name="text">
-      <string>2.000</string>
+      <string>0</string>
      </property>
     </widget>
     <widget class="QLabel" name="d_line3">
@@ -434,7 +434,7 @@ border-radius:5px;
 background-color:white;</string>
      </property>
      <property name="text">
-      <string>1.37</string>
+      <string>0</string>
      </property>
     </widget>
     <widget class="QLabel" name="d_line4">
@@ -511,7 +511,7 @@ border-radius:5px;
 background-color:white;</string>
      </property>
      <property name="text">
-      <string>1304.563</string>
+      <string>0</string>
      </property>
     </widget>
     <widget class="QLabel" name="d_line5">
@@ -723,7 +723,7 @@ font: 57 14pt &quot;WenQuanYi Zen Hei Sharp&quot;;</string>
      <string notr="true">color: rgb(0, 0, 0);</string>
     </property>
     <property name="text">
-     <string>西南交通大学</string>
+     <string/>
     </property>
    </widget>
    <widget class="QPushButton" name="battery_btn">
@@ -781,7 +781,7 @@ font: 57 14pt &quot;WenQuanYi Zen Hei Sharp&quot;;</string>
    <widget class="QPushButton" name="Poweroff_btn">
     <property name="geometry">
      <rect>
-      <x>630</x>
+      <x>730</x>
       <y>10</y>
       <width>32</width>
       <height>32</height>

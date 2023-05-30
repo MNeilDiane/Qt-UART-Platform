@@ -73,9 +73,9 @@ int Socketchannel::SocketDetect() {
         return_result=1;
     }else if(strcmp(this->protocol,"TCP")==0){
         if ((socketfd_test = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-            cout << "testsocket has been created" << endl;
+            cout << "[detectsocket has not been created]" << endl;
         } else {
-            cout << "testsocket has not been created" << endl;
+            cout << "[detectsocket has been created]" << endl;
         }
         int flags = fcntl(socketfd_test, F_GETFL, 0);
         fcntl(socketfd_test, F_SETFL, flags | O_NONBLOCK);
@@ -95,15 +95,14 @@ int Socketchannel::SocketDetect() {
                 if (select(socketfd_test + 1, &rset, &wset, NULL, &timeout) <= 0) {
                     cout << "testsocket has not been connected" << endl;
                 } else {
-
                     return_result = 1;
-                    close(socketfd_test);
                 }
             } else {
                 cout << "testsocket has not been connected" << endl;
             }
         }
     }
+    close(socketfd_test);
     return return_result;
 }
 
@@ -129,6 +128,8 @@ int Socketchannel::SocketConnect() {
         return connectstatus;
     }else if(strcmp(this->protocol,"UDP")==0){
         cout << "UDP don't need connect,just send.[ip:" << this->ip << ",port:" << this->port << ",protocol:" << this->protocol << "]"<<endl;
+        connectstatus=1;
+        return connectstatus;
     }
 }
 
@@ -157,9 +158,9 @@ void Socketchannel::SendMessage(char *sendline) const {
 
     if(strcmp(this->protocol,"TCP")==0){
         if (send(socketfd, sendline, strlen(sendline), 0) < 0) {
-            cout << "send failed." << endl;
+            qDebug()<<"send failed.";
         } else {
-            cout << "send success." << endl;
+            qDebug()<<"send success.";
         }
     }else if(strcmp(this->protocol,"UDP")==0){
         servaddr_udp->sin_family=AF_INET;
@@ -175,6 +176,28 @@ void Socketchannel::SendMessage(char *sendline) const {
     }
 }
 
+void Socketchannel::SendMessage(uint8_t data[],int data_len) const {
+
+    if(strcmp(this->protocol,"TCP")==0){
+        if (send(socketfd, data, data_len, 0) < 0) {
+            qDebug()<<"send failed.";
+        } else {
+            qDebug()<<"send success.";
+        }
+    }else if(strcmp(this->protocol,"UDP")==0){
+        servaddr_udp->sin_family=AF_INET;
+        servaddr_udp->sin_port=htons(port);
+        inet_pton(AF_INET, ip, &servaddr_udp->sin_addr);
+        //cout<<sendline<<endl;
+        //cout<<sizeof(sendline)<<endl;
+        if(sendto(socketfd,data,data_len,0,reinterpret_cast<const sockaddr*>(servaddr_udp),sizeof (*servaddr_udp))!=-1){
+            qDebug()<<"UDP packet send success";
+        }else{
+            qDebug()<<errno;
+        }
+    }
+}
+
 /**
 * @brief Socketchannel成员函数RecieveMessage
 * @details 用于接收服务器端send函数发送的信息，服务器每一次发送的数据会存入buf中，该函数适用于循环中来监听
@@ -185,16 +208,13 @@ void Socketchannel::SendMessage(char *sendline) const {
 * @note none
 */
 char *Socketchannel::RecieveMessage() const {
-    int result = 0;
     char buf[1000];
-    int recievelength;
-    if ((recievelength = recv(socketfd, buf, MAXLINE, 0)) == 0) {
-
+    int recievelength=recv(socketfd, buf, MAXLINE, 0);
+    if (recievelength == 0) {
         return nullptr;
-    } else {
-        result = 1;
     }
     buf[recievelength] = '\0';
+    cout<<recievelength<<endl;
     //printf("Received : %s\n", buf);
     char *a = buf;
     return a;
@@ -208,7 +228,8 @@ char *Socketchannel::RecieveMessage() const {
 * @warning none
 * @note none
 */
-void Socketchannel::printinfo() {
+char * Socketchannel::printinfo() {
     cout << this->ip << ":" << this->port << ":" << this->protocol << endl;
+    return this->ip;
 }
 

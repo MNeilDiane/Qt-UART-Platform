@@ -1,0 +1,62 @@
+#!/bin/sh -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+# Generate the SSH keys if non-existent
+
+if [ ! -f /etc/ssh/ssh_host_rsa_key ]
+then
+	# else ssh service start in dpkg-reconfigure will fail
+	systemctl stop ssh.socket||true
+	dpkg-reconfigure openssh-server
+fi
+echo "testnet" > /var/test.log
+
+sleep 15s
+
+for file_name in $(ls /sys/class/net)
+
+do
+
+echo ${file_name} > /var/nettest.log
+
+done
+
+sudo ifconfig eth0 0.0.0.0
+
+sudo ifconfig eth1 0.0.0.0
+
+sudo ifconfig usb1 0.0.0.0
+
+sudo brctl addbr br0
+
+sudo brctl addif br0 eth0
+
+sudo brctl addif br0 eth1
+
+sudo brctl addif br0 usb1
+
+sudo ifconfig br0 up
+
+sudo ifconfig br0 192.168.225.99/24
+
+sudo ip route add default via 192.168.225.1 dev br0
+
+sudo stty -F /dev/ttyS3 ispeed 57600 ospeed 57600
+
+
+#sudo /home/cat/git/build-RouterProgram-Desktop-Release/RouterProgram &
+
+echo "finish"> /var/test.log
+
+
+exit 0

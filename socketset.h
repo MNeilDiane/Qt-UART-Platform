@@ -48,6 +48,7 @@ public:
     //void pushButton_route(QString info);
     //vector<Socketchannel *> current_socket;
     void show_ini();
+    void set_edit(QString ip,QString port,QString protocol,int num);
 
 public
     slots:
